@@ -1,0 +1,48 @@
+version: '2.1'
+
+services:
+#EL CONFIG SERVER DONDE HAY QUE CREARLO?
+  configserver:
+    image: "aherreros/microservicesdocomo:configserver-0.0.1-SNAPSHOT"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      GIT_URI: https://bitbucket-02.dodi.io/scm/frdwll/configuration.git
+      GIT_PASS: YQuienCojonesSoy1
+      GIT_USER: alfonso.herreros
+      HOSTNAME: "configserver"
+    healthcheck:
+      test: ["CMD", "wget", "http://localhost:8888//configServer/tracking", "-O", "/tmp/wget"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+    ports:
+      - "8888:8888"
+
+  mongodb:
+    image: mongo:latest
+    command: --smallfiles
+    ports:
+      - "27017:27017"
+    restart: always
+    depends_on:
+      configserver:
+        condition: service_healthy
+
+  kafka:
+    image: landoop/fast-data-dev
+    container_name: kafka
+    hostname: kafka
+    ports:
+     - "2181:2181"
+     - "3030:3030"
+     - "8081:8081"
+     - "8082:8082"
+     - "8083:8083"
+     - "9092:9092"
+    environment:
+      ADV_HOST: localhost
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      SAMPLEDATA: 0
+      BROWSECONFIGS: 1
+      RUNTESTS: 0
+      DEBUG: 1

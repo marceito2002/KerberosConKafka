@@ -1,0 +1,26 @@
+Hi Marcos, i've a question
+If I have a API that don't used another services, in the path 'consumer' should it be empty?
+
+
+
+I have a API that don't used another services, then in the 'consumer' path I've a DockerFile where i write the necesary to can build my image and run after. 
+Into the 'local' path i've a file to docker-compose where is defined only this API.
+finaly in the 'service' path only have the file sevices.yml with the section consumer with this API.
+Is ok?, because the second sentences what did yor say, build a new images from  path 'consumer' that in the first sentence was run with docker-compose.
+ 
+
+
+The first API is a config server micreservice for externalized configuration, It doesn't have psersintence, only provides for another API configuration
+We are generating the docker images with oa maven pluging in the local respository. 
+When i'am executin the 
+The first sentece, run a container with de images of my new API that i have defined into composer.yml        
+
+
+I don't undestand the next one, build a new images with the dockerfile into the folder consumer, that is the 
+
+
+
+docker-compose -f C:/Docomo/proyectos/fraudwall/microservice/tracking/ci/local/composer.yml -p global-utils up -d     
+docker build C:/Docomo/proyectos/fraudwall/microservice/tracking/ci/consumer  -t global-utils
+docker run -ti --rm --name global-utils        -v C:/Docomo/proyectos/fraudwall/microservice/tracking:/WORKSPACE -e WORKSPACE=/WORKSPACE --env-file C:/Docomo/proyectos/fraudwall/microservice/tracking/ci/local/consumer.env --network global-utils_default global-utils 
+

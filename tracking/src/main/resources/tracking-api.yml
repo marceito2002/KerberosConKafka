@@ -1,0 +1,247 @@
+swagger: '2.0'
+info:
+  description: |
+    tracking 
+  version: 0.0.1-SNAPSHOT
+  title: Fraudwall Tracking
+
+  
+
+schemes:
+- "https"
+  
+#basePath: /tracking
+#
+# 
+paths:
+  /partner/{partnerName}:
+    post:
+      summary: "create a unique fraudwall session id"
+      description : "This call must be done each time a new session starts. It returns a sessionId which should be passed as parameter for sending the kpis"
+      operationId: "createSessionId"
+      produces:
+      - "application/json"   
+     
+      # define the parameters    
+      parameters:
+        - in: path
+          name: partnerName
+          required: true
+          type: string
+          description: partnerName provided by Docomo Digital
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/sessionIdResponse'
+        400:
+          description: "Bad request"            
+        404:
+          description: Not found
+        500:
+          description: Internal server error
+          
+  /partner/{partnerName}/session/{sessionId}/event/{eventName}:
+    put:
+      description: Send KPIs for each event.  
+      operationId: sendKpi
+      #  define the parameters    
+      produces:
+      - application/json      
+      parameters:
+        - in: path
+          name: partnerName
+          required: true
+          type: string
+          description: partnerName provided by Docomo Digital.
+        - in: path
+          name: sessionId
+          required: true
+          type: string
+          minimum: 1
+          description: fraudwall session id provided in the previous call "/partner/{partnerName}".
+        - in: path
+          name: eventName
+          required: true
+          type: string
+          description: Name of the event (BannerClick, clickCTA, subscription, unsubscription, etc).
+        - in: body
+          name: kpiParameters
+          description: kpi parameters
+          required: true
+          schema:
+            $ref: "#/definitions/Kpis"
+        
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/sessionIdResponse'          
+        400:
+          description: "Bad request"   
+        401:
+          description: "Session/partnerName not exist"
+        500:
+          description: Internal server error
+          
+  /partner/{partnerName}/session/{sessionId}/fraudLevel:
+    get:
+      description: get the fraudLevel of the sessionId
+      operationId: getFraudLevel
+      #  define the parameters    
+      produces:
+      - application/json      
+      parameters:
+        - in: path
+          name: partnerName
+          required: true
+          type: string
+          description: partnerName provided by Docomo Digital.
+        - in: path
+          name: sessionId
+          required: true
+          type: string
+          minimum: 1
+          description: fraudwall session id provided in the previous call "/partner/{partnerName}".
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/fraudLevelResponse"
+        203:
+          description: "FraudLevel not found. Not enough kpis"
+        400:
+          description: "Bad request"  
+        404:
+          description: "Not found"
+        500:
+          description: "Internal server error"
+          
+  /partner/{partnerName}/session/{sessionId}:
+    get:
+      description: get all the information of the sessionId
+      operationId: getSessionIdInfo
+      #  define the parameters    
+      produces:
+      - application/json      
+      parameters:
+        - in: path
+          name: partnerName
+          required: true
+          type: string
+          description: partnerName provided by Docomo Digital.
+        - in: path
+          name: sessionId
+          required: true
+          type: string
+          minimum: 1
+          description: fraudwall session id provided in the previous call "/partner/{partnerName}".
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/sessionIdInfoResponse"
+        203:
+          description: "FraudLevel not found. Not enough kpis"
+        400:
+          description: "Bad request"  
+        404:
+          description: "Not found"
+        500:
+          description: "Internal server error"
+definitions:
+         
+  Kpis:
+    type: object
+    properties:
+      timestampUtc:
+        type: "string" 
+        description: UTC Timestamp of the event kpi. Example Format. 20171216 10:20:34:653. 
+      partnerTrid:
+        type: string       
+        description: Partner transaction id wich identifies all the kpis of the same sessionId. This can be used by the partner for future investigations.
+      userId:
+        type: string
+        description: Phone number (with prefix but without +) or alias of the user.
+      country:
+        type: string
+        description: Country shortcode ISO (es,fr,kw,etc...)
+      purchaseFlow:   
+        type: string
+        description: High level type of fow (oneClick, pin flow, etc..).
+      service:
+        type: string        
+        description: service
+      mediaChannel:
+        type: string
+        description: mediachannel 
+      merchant:
+        type: string
+        description: merchant
+      affiliate:
+        type: string
+        description: affiliate
+      app:   
+        type: string          
+        description: Mobile application where the add is displayed
+      operator:
+        type: string  
+        description: carrier of the user
+      ip:
+        type: string        
+        description: user IP.
+      network:
+        type: string
+        description: Network (3G, WIFI, ADSL...)
+      ua:
+        type: object
+        properties:
+          uaGroup:
+            type: string
+            description: uaGroup (ANDROID_PHONE, IPHONE)
+          uaString:
+            type: string
+            description: uaString (Mozilla/5.0 (Linux; U; Android 2.2; en-us; Nexus One Build/FRF91) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1)
+          uaBrand:
+            type: string
+            description: user agent brand (Samsng, Sony...)
+          uaModel:
+            type: string
+            description: iPhone, SM-N910G...
+          uaBrowser:
+            type: string
+            description: uaBrowser (Chrome Mobile, Safari, Opera Mini..)
+          uaBrowserVersion:
+            type: string
+            description: ua browser version (Mobile Chrome, Thunderbird...)
+    required:
+      - sessionId
+      - eventName
+      - timestampUtc
+      - userId
+      - purchaseFlow
+      - country
+  
+  fraudLevelResponse:
+    type: object
+    properties:
+      fraudLevel: 
+        type: integer
+      fraudScore:
+        type: number
+        format: float
+      tags:
+        type: array
+        items:
+          type: string
+    
+  sessionIdResponse:
+    type: object
+    properties:
+      sessionId:
+        type: string
+      responseMessage:
+        type: string
+        
+  sessionIdInfoResponse:
+    type: string

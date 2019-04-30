@@ -1,0 +1,1 @@
+FROM aherreros/microservicesdocomo:spring-boot-base-1.0.0

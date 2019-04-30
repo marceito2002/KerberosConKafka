@@ -1,0 +1,253 @@
+def source = env.TAG_NAME ? env.TAG_NAME : env.BRANCH_NAME
+
+def scopeMap  = [
+        "buildGoal"   : "deploy",
+        "profile" : "preprod",
+        "deployGoal" :"install",
+        "rev"    : source,
+	"deploy" : "false"
+]
+
+switch (source) {
+    case "master":
+        scopeMap.put("profile", "preprod")
+        scopeMap.put("version", "master-SNAPSHOT")
+		scopeMap.put("deploy", "true")
+        break
+    case ~/\d*\.\d*\.\d*/:
+        scopeMap.put("profile", "preprod")
+        scopeMap.put("version", "$source")
+		scopeMap.put("deploy", "true")
+        break
+    case ~/feature\/.*/:
+        scopeMap.put("profile", "preprod")
+        def array = source.toString().split('/')
+        if (array.length > 1) {
+            scopeMap.put("version", "${array[1]}-SNAPSHOT")
+        }
+
+        break
+    case ~/hotfix\/.*/:
+        scopeMap.put("profile", "preprod")
+        def array = source.toString().split('/')
+        if (array.length > 1) {
+            scopeMap.put("version", "${array[1]}-SNAPSHOT")
+        }
+        break
+    case ~/bugfix\/.*/:
+        scopeMap.put("profile", "preprod")
+        def array = source.toString().split('/')
+        if (array.length > 1) {
+            scopeMap.put("version", "${array[1]}-SNAPSHOT")
+        }
+        break
+    default:
+        echo "Nothing to do"
+}
+
+import com.buongiorno.jenkinsci.plugins.delivery.*;
+
+currentBuild.displayName = "#${currentBuild.number}: "+ scopeMap.get('buildGoal')+"&"+scopeMap.get('deployGoal')+" - "+scopeMap.get('profile')+" - "+ scopeMap.get('rev')
+
+pipeline {
+    agent any
+//    agent {
+//        docker { image 'appuio/oc:latest' }
+//    }    
+    tools {
+        maven 'Maven 3.5.0'
+        jdk 'jdk 8u71'
+        oc 'oc3'
+    }
+    environment{
+		COMPOSER_FOLDER = "./tracking/ci/local/"
+
+		
+		DOCKER_REPOSITORY= "aherreros/microservicesdocomo"
+		DOCKER_USER="alfonso.herreros"
+		DOCKER_PASS="pepito"
+		
+		OPENSHIFT_PROJECT = "prueba"
+		OPENSHIFT_TOKEN="1GBRtUh37CLj2uWCSoyGKV3YQM-3os7ZZOvbsIjheMc"
+		OPENSHIFT_ENPOINT="https://okd-milrc1.dodi.io:8443"
+		
+		
+		NAME_PROJECT_OP = "fraudwall"
+		TEMPLATE_NAME = "trackingPrueba"
+//		KUBERNETES_SERVICE_HOST="https://okd-milrc1.dodi.io"
+		
+		https://okd-mil3.dodi.io:8443
+//		KUBERNETES_SERVICE_PORT_HTTPS="8443"
+//		SKIP_TLS=true
+		
+		
+	
+		//oc login https://okd-milrc1.dodi.io:8443 --token=4ifuIq7LCb1F3iZxbgt_eb-I7mGBw5_9khzN4X-wvQ8
+
+        // ****************************** Modify the job names for different projects ********************     
+        buildJob = "/FraudWall/fraudwall-api_arq"        
+        //deployJob = "/Data-Intelligence/data-intelligence-genius-cat-flume-deploy"
+        // ****************************** Modify the job names for different projects ********************
+	
+        myBuildGoal = scopeMap.get("buildGoal")
+
+        
+  
+        myProfile = scopeMap.get("profile")
+    
+    
+        myRev = scopeMap.get("rev")        
+
+        
+        myVersion = scopeMap.get("version")
+
+        
+		shouldDeploy = scopeMap.get("deploy")
+
+    }
+
+
+
+
+    options {
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '3'))
+    }
+
+
+
+    stages {
+
+
+        stage('connection openshift') {
+            steps {
+                echo 'probado oc login -u admin....'
+             // sh 'docker rmi $(docker images -q -f "dangling=true")'
+             //sh "ping 192.168.129.160"
+                sh "oc login --insecure-skip-tls-verify=true ${OPENSHIFT_ENPOINT} --token=${OPENSHIFT_TOKEN}"
+                echo 'CONECTADO...'                
+            }
+        } 
+        
+		stage('Create Image Builder with plugin') {
+		    when {
+		        expression {
+		            openshift.withCluster() {
+		            echo "EJECUTA OPENSHIFT"		           
+		            openshift.withProject(NAME_PROJECT_OP) {
+		                echo "ok, estoy en el proyecto: ${openshift.project()}"		              
+		                echo "Hello from ${openshift.cluster()}'s default project: ${openshift.project()} and ${TEMPLATE_NAME}"  // This fails
+		                
+		               // return !openshift.selector("bc", "${TEMPLATE_NAME}").exists();
+		                openshift.newBuild("--name=${TEMPLATE_NAME}", "--docker-image=docker.io/nginx:mainline-alpine", "--binary=true")
+		                echo "construye una imagen"
+		                
+		                
+		                //Un vez existe la imagen en registry de openhsift
+		                //oc new-app aherreros/microservicesdocomo:configserver-0.0.1-SNAPSHOT --name pruebaborrar
+		                }
+		            }
+		        }
+		    }
+		    steps {
+		     echo "EJECUTA OPENSHIFT"
+	         script {
+		            openshift.withCluster() {
+		            echo "cluster OPENSHIFT"
+		                openshift.withProject(NAME_PROJECT_OP) {
+		                echo "ok, estoy en el proyecto: ${openshift.project()}"
+		                openshift.newBuild("--name=mapit", "--image-stream=redhat-openjdk18-openshift:1.1", "--binary")
+		                }
+		            }
+		        }
+		    }
+		}
+
+
+        
+        
+        stage('Docker clean') {
+            steps {
+                echo 'Docker artifact....'
+                //sh 'docker rmi $(docker images -q -f "dangling=true")'
+                //sh 'docker rmi 04c26e65cee7 f6b1755a5490 ' 
+                
+                sh 'docker images'
+            }
+        }   
+      
+        stage('Prepare') {
+            steps {
+                echo 'levantando consumers....'
+                //sh 'docker-compose -f ./tracking/ci/local/docker-compose-consumer.yml up -d'
+                sh "docker-compose -f ${COMPOSER_FOLDER}docker-compose-consumer.yml up -d"
+                 
+                
+            }
+        }           
+       
+        
+       stage('Build') {
+            steps {
+                echo 'Building artifact....'
+                echo "Goal: $env.myBuildGoal and $env.myDeployGoal Revision $env.myRev Version: $env.myVersion"
+                sh 'mvn -B -DskipTests -Ddockerfile.skip=true clean package'
+            }
+        }
+
+        stage('Install') {
+            steps {
+                echo 'Install artifact....'
+                echo "Goal: $env.myBuildGoal and $env.myDeployGoal Revision $env.myRev Version: $env.myVersion"
+                sh 'mvn -B clean install -DskipTests'                 
+            }
+        }
+        
+        
+        stage('Bring up consumer') {
+            steps {
+                echo 'Bring up consumers....'
+ 				sh 'docker-compose -f ${COMPOSER_FOLDER}docker-compose.yml up -d'
+                
+            }
+        }   
+                
+        stage('Test') {
+            steps {
+                echo 'Install artifact....'
+                echo "Goal: $env.myBuildGoal and $env.myDeployGoal Revision $env.myRev Version: $env.myVersion"
+                sh 'mvn -B clean install -Ddockerfile.skip=true'                 
+            }
+        }               
+        //stage('Deploy') {
+        //    steps {
+        //        echo 'Deloying artifact....'
+        //        echo "Goal: $env.myBuildGoal and $env.myDeployGoal Revision $env.myRev Version: $env.myVersion"
+        //        sh 'mvn deploy  -DskipTests -Ddockerfile.skip=true'                 
+        //    }
+        //}          
+
+                
+        stage('Docker push repo') {
+            steps {
+                echo 'Docker pushing artifact....'
+                //sh 'docker rmi $(docker images -q -f "dangling=true")'
+             //  sh 'mvn dockerfile:push'
+               sh "docker images"
+             //  sh "docker push repo-04.dodi.io:5000/configserver:0.0.1-SNAPSHOT"
+            }
+        }    
+                                     
+        
+    }
+    post {
+        always {
+            script {           
+                echo 'stoping consumers....'
+ 				//sh 'docker-compose -f ${COMPOSER_FOLDER}docker-compose-consumer.yml down'   
+ 				//sh 'docker-compose -f ${COMPOSER_FOLDER}docker-compose.yml down'
+                currentBuild.result = currentBuild.result ?: 'SUCCESS'
+            }
+        }
+    }
+}

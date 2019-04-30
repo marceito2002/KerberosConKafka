@@ -1,0 +1,69 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: tracking
+  name: tracking
+  namespace: fraudwall
+spec:
+  replicas: 1
+  selector:
+    app: tracking
+    deploymentconfig: tracking
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: tracking
+        deploymentconfig: tracking
+    spec:
+      containers:
+        - env:
+            - name: CONFIG_SERVER_ENDPOINT
+              value: 'http://configserver:8888'
+            - name: SPRING_PROFILES_ACTIVE
+              value: openshift
+          image: aherreros/microservicesdocomo:tracking-0.0.1-SNAPSHOT
+          imagePullPolicy: IfNotPresent
+          name: tracking
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+            - containerPort: 8080
+              protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /tmp
+              name: tracking-1
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - emptyDir: {}
+          name: tracking-1
+  test: false
+  triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+          - tracking
+        from:
+          kind: ImageStreamTag
+          name: 'tracking:tracking-0.0.1-SNAPSHOT'
+          namespace: fraudwall
+        lastTriggeredImage: aherreros/microservicesdocomo:tracking-0.0.1-SNAPSHOT
+      type: ImageChange

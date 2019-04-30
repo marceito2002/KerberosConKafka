@@ -1,0 +1,50 @@
+
+server:  
+  port: 8080   # HTTP port
+
+
+spring:  
+  application:    
+    name: tracking
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: fraudwall
+
+               
+endpoints:
+  health:
+    sensitive: false
+  restart:
+    enabled: true
+  shutdown:
+    enabled: true
+
+msg:
+  partnerNameNoExist: Error to generate session, partnerId not exist. 
+  ssesionSuccess: Token generated Successfully
+  tokenOrPartnerNoExist: Session/partnerName not exist
+
+
+     
+kafka:
+  bootstrap-servers: kafka
+  topic: FRAUD-WALL-NEW
+  port: 9092 
+
+
+logging:
+  file: logs/${spring.application.name}.log
+  pattern:
+    console: "%d %-5level %logger{5} %M : %msg%n"
+    file: "%d %-5level %logger{5} %M : %msg%n"
+  level:
+    com.netflix.discovery: 'OFF'
+    org.springframework.cloud: 'INFO'
+    org.springframework.web: 'INFO'
+    com.docomo.fraudwall: 'INFO' 
+    org.springframework.kafka: 'INFO'
+          
+  
+  

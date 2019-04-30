@@ -1,0 +1,25 @@
+version: '2.1'
+
+services:
+  tracking:
+    image: "repo-04.dodi.io:5000/tracking:0.0.1-SNAPSHOT"
+    container_name: tracking
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      CONFIG_SERVER_ENDPOINT: http://configserver:8888
+
+    #depends_on:      
+    #  - configserver
+     # - mongodb
+    #links:
+    #  - mongodb
+    #  - kafka
+    #  - configserver
+    networks:
+      - docomo.fraudwall
+    ports:
+      - "8080:8080"
+
+networks:
+  docomo.fraudwall:
+    driver: bridge

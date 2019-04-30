@@ -1,0 +1,57 @@
+swagger: '2.0'
+info:
+  description: |
+    operation CRUD to fraudwall mongo
+  version: 0.0.1-SNAPSHOT
+  title: Fraudwall CRUD mongo fraudwall
+
+  
+
+schemes:
+- "https"
+  
+#basePath: /tracking
+#
+# 
+paths:
+  /kafka/producermessage:
+    post:
+      summary: "create a new message in kafka"
+      description : "create a new message in kafka"
+      operationId: "producermsg"
+      produces:
+      - "application/json"   
+     
+      # define the parameters    
+      parameters:
+        - in: body
+          name: msgProducer
+          description: message struct
+          required: true
+          schema:
+            $ref: "#/definitions/MsgProducer"
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseData'          
+
+
+definitions:
+
+  MsgProducer:
+    type: object
+    properties:
+      topic:
+        type: string       
+        description: Topic name   
+      msg:
+        type: string
+        description: message to kafka
+        
+  ResponseData:
+    type: object
+    properties:
+      responseMessage:
+        type: string
+        

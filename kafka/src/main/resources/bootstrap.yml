@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: kafka  
+  cloud:
+     config:
+      failFast: false      
+      uri: ${CONFIG_SERVER_ENDPOINT} #docomo.com/configserverr:8888
+
+---
+spring:
+  profiles: test    
+  cloud:
+     config:
+      failFast: false
